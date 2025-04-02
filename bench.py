@@ -109,7 +109,7 @@ def load_test_worker(user_type):
         time.sleep(random.uniform(0.3, 1.2))
 
 
-def main(admin_count=10, user_count=20):
+def main(admin_count, user_count):
     stats_thread = threading.Thread(target=stats_printer, daemon=True)
     stats_thread.start()
 
