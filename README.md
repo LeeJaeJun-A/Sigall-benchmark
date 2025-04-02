@@ -1,10 +1,8 @@
-# Sigall Client Load Test
-
-A lightweight load testing tool for simulating concurrent admin and user interactions with your API.
-
+# Sigall Client Benchmark
+A lightweight tool for simulating concurrent admin and user API interactions to benchmark performance.
 ---
 
-## 📦 Requirements
+## Requirements
 
 - Python 3.8+
 - Recommended: use a virtual environment (`venv` or `virtualenv`)
