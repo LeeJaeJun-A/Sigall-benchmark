@@ -1,6 +1,7 @@
 # Sigall Benchmark
 
 A lightweight tool for simulating concurrent admin and user API interactions to benchmark performance.
+
 ---
 
 ## Requirements
