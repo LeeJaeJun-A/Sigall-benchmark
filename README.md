@@ -49,4 +49,4 @@ python bench.py --admin 5 --user 30
 |-------------|--------------------------------------|---------|
 | `--admin`   | Number of concurrent admin workers   | `5`     |
 | `--user`    | Number of concurrent user workers    | `30`    |
-| `--duration`| Test duration in seconds             | `30`    |
+| `--duration`| Test duration in seconds             | `60`    |
