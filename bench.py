@@ -30,7 +30,7 @@ COMMON_HEADERS = {"Content-Type": "application/json"}
 
 total_requests = 0
 total_requests_lock = threading.Lock()
-
+stop_flag = threading.Event()
 
 def increment_request_count():
     global total_requests
@@ -38,21 +38,30 @@ def increment_request_count():
         total_requests += 1
 
 
-def stats_printer():
+def stats_printer(duration):
     global total_requests
     prev_total = 0
     start_time = time.time()
 
-    while True:
-        time.sleep(1)
-        with total_requests_lock:
-            current_total = total_requests
-        qps = current_total - prev_total
-        elapsed = int(time.time() - start_time)
-        print(
-            f"[STATS] {elapsed}s elapsed | Total Requests: {current_total} | QPS: {qps}"
-        )
-        prev_total = current_total
+    with open("stats.csv", "w", encoding="utf-8") as f:
+        f.write("time_elapsed,qps,total_requests\n")
+
+        while not stop_flag.is_set():
+            time.sleep(1)
+            with total_requests_lock:
+                current_total = total_requests
+            qps = current_total - prev_total
+            elapsed = int(time.time() - start_time)
+            print(
+                f"[STATS] {elapsed}s elapsed | QPS: {qps} | Total Requests: {current_total}"
+            )
+            f.write(f"{elapsed},{qps},{current_total}\n")
+            f.flush()
+            prev_total = current_total
+
+            if elapsed >= duration:
+                stop_flag.set()
+
 
 
 def login(user_type):
@@ -104,16 +113,17 @@ def load_test_worker(user_type):
 
     endpoints = ADMIN_ENDPOINTS if user_type == "admin" else USER_ENDPOINTS
     for _ in range(10):
+        if stop_flag.is_set():
+            break
         endpoint = random.choice(endpoints)
         call_api(session_id, endpoint)
-        time.sleep(random.uniform(0.3, 1.2))
 
-
-def main(admin_count, user_count):
-    stats_thread = threading.Thread(target=stats_printer, daemon=True)
+def main(admin_count, user_count, duration):
+    stats_thread = threading.Thread(target=stats_printer, args=(duration,), daemon=True)
     stats_thread.start()
 
-    while True:
+    start_time = time.time()
+    while not stop_flag.is_set():
         try:
             with ThreadPoolExecutor(max_workers=admin_count + user_count) as executor:
                 futures = []
@@ -123,10 +133,13 @@ def main(admin_count, user_count):
                     futures.append(executor.submit(load_test_worker, "user"))
                 for f in as_completed(futures):
                     f.result()
-            time.sleep(0.2)
+            if time.time() - start_time > duration:
+                stop_flag.set()
         except Exception as e:
             print(f"[!] Exception in main loop: {e}")
             time.sleep(5)
+
+    print("[INFO] Load test completed.")
 
 
 if __name__ == "__main__":
@@ -135,6 +148,7 @@ if __name__ == "__main__":
     )
     parser.add_argument("--admin", type=int, default=5, help="Number of admin workers")
     parser.add_argument("--user", type=int, default=30, help="Number of user workers")
+    parser.add_argument("--duration", type=int, default=60, help="Test duration in seconds")
     args = parser.parse_args()
 
-    main(admin_count=args.admin, user_count=args.user)
+    main(admin_count=args.admin, user_count=args.user, duration=args.duration)
